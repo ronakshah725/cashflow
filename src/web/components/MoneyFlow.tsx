@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { fmtK, money, type FlowLink, type FlowNode } from "../lib/calc";
 
 interface Props {
@@ -8,14 +9,11 @@ interface Props {
   includeBonus: boolean;
 }
 
-const W = 360;
-const H = 300;
-const NODE_W = 12;
-const LEFT_X = 96;
-const RIGHT_X = W - LEFT_X - NODE_W;
-const TOP = 12;
-const BOTTOM = 12;
-const GAP = 10;
+const NODE_W = 14;
+const LABEL_MARGIN = 100;
+const TOP = 16;
+const BOTTOM = 16;
+const GAP = 14;
 
 interface PlacedNode extends FlowNode {
   x: number;
@@ -24,24 +22,47 @@ interface PlacedNode extends FlowNode {
   column: 0 | 1;
 }
 
-/** Two-column Sankey: sources left, destinations right, widths are dollars. */
+/**
+ * Two-column Sankey: sources left, destinations right, widths are dollars.
+ * Measured responsive: 1 SVG unit = 1 CSS px, so labels stay readable on
+ * any screen and the diagram always fills its container.
+ */
 export function MoneyFlow({ nodes, links, phase, onPhase, includeBonus }: Props) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [w, setW] = useState(640);
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const cw = Math.round(entries[0].contentRect.width);
+      if (cw > 0) setW(cw);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const W = Math.max(300, w);
+  const H = Math.round(Math.min(430, Math.max(300, W * 0.45)));
+  const leftX = LABEL_MARGIN;
+  const rightX = W - LABEL_MARGIN - NODE_W;
+
   const sourceIds = new Set(links.map((l) => l.source));
   const left = nodes.filter((n) => sourceIds.has(n.id));
   const right = nodes.filter((n) => !sourceIds.has(n.id));
 
-  const total = Math.max(
-    left.reduce((s, n) => s + n.value, 0),
-    right.reduce((s, n) => s + n.value, 0),
-    1,
+  const colTotal = (list: FlowNode[]) => list.reduce((s, n) => s + n.value, 0);
+  const scale = Math.min(
+    (H - TOP - BOTTOM - GAP * (left.length - 1)) / Math.max(1, colTotal(left)),
+    (H - TOP - BOTTOM - GAP * (right.length - 1)) / Math.max(1, colTotal(right)),
   );
-  const scale = (H - TOP - BOTTOM - GAP * (Math.max(left.length, right.length) - 1)) / total;
 
   const place = (list: FlowNode[], column: 0 | 1): PlacedNode[] => {
-    const x = column === 0 ? LEFT_X : RIGHT_X;
-    let y = TOP;
+    const x = column === 0 ? leftX : rightX;
+    const colH = colTotal(list) * scale + GAP * (list.length - 1);
+    let y = TOP + Math.max(0, (H - TOP - BOTTOM - colH) / 2);
     return list.map((n) => {
-      const p = { ...n, x, y, h: Math.max(2, n.value * scale), column };
+      const p = { ...n, x, y, h: Math.max(3, n.value * scale), column };
       y += p.h + GAP;
       return p;
     });
@@ -61,13 +82,13 @@ export function MoneyFlow({ nodes, links, phase, onPhase, includeBonus }: Props)
     used.set(id, (used.get(id) ?? 0) + v * scale);
     return y;
   };
-  const midX = (LEFT_X + NODE_W + RIGHT_X) / 2;
+  const midX = (leftX + NODE_W + rightX) / 2;
   const paths = ordered.map((l, i) => {
     const s = placed.get(l.source)!;
     const t = placed.get(l.target)!;
-    const w = Math.max(1.5, l.value * scale);
-    const y0 = take(l.source, l.value) + w / 2;
-    const y1 = take(l.target, l.value) + w / 2;
+    const bw = Math.max(2, l.value * scale);
+    const y0 = take(l.source, l.value) + bw / 2;
+    const y1 = take(l.target, l.value) + bw / 2;
     const x0 = s.x + NODE_W;
     const x1 = t.x;
     return (
@@ -77,7 +98,7 @@ export function MoneyFlow({ nodes, links, phase, onPhase, includeBonus }: Props)
         fill="none"
         stroke={l.color}
         strokeOpacity={0.38}
-        strokeWidth={w}
+        strokeWidth={bw}
       >
         <title>
           {s.label} → {t.label}: {money(l.value)}/mo
@@ -89,13 +110,13 @@ export function MoneyFlow({ nodes, links, phase, onPhase, includeBonus }: Props)
   const label = (p: PlacedNode) => {
     const cy = p.y + p.h / 2;
     const anchor = p.column === 0 ? "end" : "start";
-    const x = p.column === 0 ? p.x - 8 : p.x + NODE_W + 8;
+    const x = p.column === 0 ? p.x - 10 : p.x + NODE_W + 10;
     return (
       <g key={p.id}>
-        <text x={x} y={cy - 3} textAnchor={anchor} fontSize={11} fill="#e8efe9">
+        <text x={x} y={cy - 4} textAnchor={anchor} fontSize={12.5} fill="#e8efe9">
           {p.label}
         </text>
-        <text x={x} y={cy + 11} textAnchor={anchor} fontSize={10} fill="#9db0a4">
+        <text x={x} y={cy + 12} textAnchor={anchor} fontSize={11} fill="#9db0a4">
           {fmtK(p.value)}
         </text>
       </g>
@@ -125,7 +146,7 @@ export function MoneyFlow({ nodes, links, phase, onPhase, includeBonus }: Props)
           </button>
         </div>
       </div>
-      <div className="chart">
+      <div className="chart" ref={wrapRef}>
         <svg
           viewBox={`0 0 ${W} ${H}`}
           width="100%"
