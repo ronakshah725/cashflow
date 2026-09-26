@@ -307,9 +307,11 @@ app.get("/", async (c) => {
   if (!secretsReady(c.env)) return c.html(SETUP_HTML, 503);
   const sess = await readSession(c.req.raw, c.env);
   if (!sess) return c.redirect("/auth/login", 302);
-  const url = new URL(c.req.url);
-  url.pathname = "/index.html";
-  return c.env.ASSETS.fetch(new Request(url, c.req.raw));
+  // NOTE: do NOT rewrite to /index.html here. Workers Static Assets resolves
+  // "/" to index.html itself, and it 307-redirects a literal /index.html
+  // request back to "/", which caused an infinite redirect loop for
+  // authenticated users (the login itself was fine).
+  return c.env.ASSETS.fetch(c.req.raw);
 });
 
 // Static assets (JS/CSS) carry no personal data; serve them directly.
