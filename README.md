@@ -15,15 +15,15 @@ committed at `config/assumptions.defaults.example.json`.
 A decision-oriented dashboard, not an input form:
 
 - **Verdict headline** — one live sentence combining the current rent,
-  childcare plan, and monthly investing figure, plus a plain verdict
+  care plan, and monthly investing figure, plus a plain verdict
   (Comfortable / Workable / Tight / In the red).
-- **Waterfall chart** — income minus housing, lifestyle, and baby/care buckets
+- **Waterfall chart** — income minus housing, lifestyle, and care buckets
   equals monthly investing, with a Phase 1 / Phase 2 toggle.
-- **Childcare scenario bars** — daycare / nanny / aunty / family, each split
+- **Care scenario bars** — four care plans, each split
   into cash-flow and bonus layers. This is the highest-weight decision.
 - **5-year timeline** — stacked cumulative investing showing the rent-only
-  window, the baby-start marker, and the bonus as its own layer.
-- **5 hero inputs** — effective rent, childcare plan, bonus toggle, baby-start
+  window, the care-start marker, and the bonus as its own layer.
+- **5 hero inputs** — effective rent, care plan, bonus toggle, care-start
   month, and lifestyle as one editable number with an expandable breakdown.
   Everything else lives under a "Fine-tune" collapsible.
 
@@ -32,7 +32,7 @@ A decision-oriented dashboard, not an input form:
 There is deliberately no CSV parsing or actuals-vs-plan UI in the app. When
 spending or income reality changes:
 
-1. The user hands a new Rocket Money CSV export to the assistant.
+1. The user hands a fresh CSV export to the assistant.
 2. The assistant re-runs the reconciliation and updates
    `config/assumptions.defaults.json` (gitignored, never committed).
 3. The assistant re-seeds KV: `CLOUDFLARE_API_TOKEN=... npm run seed`.
