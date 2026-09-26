@@ -126,8 +126,9 @@ export function App() {
           <Verdict
             rent={assumptions.rent}
             childcareId={assumptions.childcare}
-            total={calc.phase2.total}
+            total={phase === 1 ? calc.phase1.total : calc.phase2.total}
             includeBonus={assumptions.includeBonus}
+            phase={phase}
           />
           <Waterfall
             steps={steps}
