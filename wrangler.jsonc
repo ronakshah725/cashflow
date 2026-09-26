@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cashflow",
+  // WARNING: the worker name is part of the Google OAuth redirect URI
+  // (https://cashflow.ronakshah725.workers.dev/auth/callback). Do not rename
+  // without updating the OAuth client in the Google Cloud console.
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2026-09-26",
+  "account_id": "8bf8cb47c4e0d03ed3c1ab78485871a4",
+  "kv_namespaces": [
+    {
+      "binding": "ASSUMPTIONS",
+      "id": "ffd9a603c25945179d5824dc1a322439"
+    }
+  ],
+  "assets": {
+    "directory": "./dist",
+    // Binding name the worker uses to fetch static assets (env.ASSETS).
+    "binding": "ASSETS",
+    // The worker runs first so GET / can enforce the Google login
+    // before serving index.html; other static assets pass through.
+    "run_worker_first": true
+  }
+}
