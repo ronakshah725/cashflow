@@ -6,6 +6,7 @@ import {
   type NumericKey,
 } from "../lib/levers";
 import type { Assumptions, ChildcareOption } from "../lib/types";
+import { InfoTip } from "./InfoTip";
 import { MoneyControl } from "./MoneyControl";
 
 interface Props {
@@ -28,7 +29,13 @@ export function HeroInputs({ a, options, onPatch }: Props) {
   return (
     <section className="card hero" aria-label="Key inputs">
       <div className="card-head">
-        <h2>Your levers</h2>
+        <span className="head-title">
+          <h2>Your levers</h2>
+          <InfoTip
+            label="About these inputs"
+            text="The five numbers that move the answer most. Drag, type, or tap; the verdict updates instantly. Everything else lives under Fine-tune below."
+          />
+        </span>
       </div>
       <div className="control-list">
         <MoneyControl

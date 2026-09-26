@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { fmtK, money, type FlowLink, type FlowNode } from "../lib/calc";
+import { InfoTip } from "./InfoTip";
 
 interface Props {
   nodes: FlowNode[];
@@ -126,7 +127,13 @@ export function MoneyFlow({ nodes, links, phase, onPhase, includeBonus }: Props)
   return (
     <section className="card" aria-label="Where the money goes">
       <div className="card-head">
-        <h2>Where the money goes</h2>
+        <span className="head-title">
+          <h2>Where the money goes</h2>
+          <InfoTip
+            label="About this chart"
+            text="Every dollar of monthly income, drawn as a stream. Wider stream, more dollars. Flip between phases to see how the flows change once childcare starts."
+          />
+        </span>
         <div className="seg" role="group" aria-label="Phase">
           <button
             type="button"

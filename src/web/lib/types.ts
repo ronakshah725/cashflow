@@ -10,6 +10,14 @@ export interface ChildcareOption {
   note: string;
 }
 
+/** One line item of the baby-gear reserve. Amounts are seeded from the
+ *  (gitignored) defaults JSON, never hardcoded here. */
+export interface GearItem {
+  id: string;
+  label: string;
+  amount: number;
+}
+
 /** Editable levers. Persisted per user via PUT /api/assumptions. */
 export interface Assumptions {
   hisPay: number;
@@ -23,14 +31,19 @@ export interface Assumptions {
   groceries: number;
   coffee: number;
   other: number;
+  /** Annual travel spend, wired into monthly investing as travel/12. */
   travel: number;
-  diningBaby: number;
-  travelBaby: number;
   childcare: string;
   childcareCustom: number;
   consumables: number;
   formula: number;
-  gear: number;
+  /** Itemized baby-gear reserve; the one-time total is the sum of amounts. */
+  gearItems: GearItem[];
+  /**
+   * Legacy lump-sum gear reserve. Only used when gearItems is empty/missing
+   * (data seeded before the itemized breakdown). New writes use gearItems.
+   */
+  gear?: number;
   medical: number;
   startMonth: string;
 }
@@ -53,12 +66,9 @@ export const NUMERIC_KEYS: (keyof Assumptions)[] = [
   "coffee",
   "other",
   "travel",
-  "diningBaby",
-  "travelBaby",
   "childcareCustom",
   "consumables",
   "formula",
-  "gear",
   "medical",
 ];
 
@@ -76,13 +86,11 @@ export const ZERO_ASSUMPTIONS: Assumptions = {
   coffee: 0,
   other: 0,
   travel: 0,
-  diningBaby: 0,
-  travelBaby: 0,
   childcare: "none",
   childcareCustom: 0,
   consumables: 0,
   formula: 0,
-  gear: 0,
+  gearItems: [],
   medical: 0,
   startMonth: "",
 };

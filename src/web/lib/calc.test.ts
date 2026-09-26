@@ -12,6 +12,7 @@ import {
   childcareAmount,
   compute,
   fmtK,
+  gearTotal,
   money,
   moneyFlow,
   scenarioResults,
@@ -41,13 +42,23 @@ function fixture(over: Partial<Assumptions> = {}): Assumptions {
     coffee: 150,
     other: 2725,
     travel: 4000,
-    diningBaby: 0,
-    travelBaby: 0,
     childcare: "daycare",
     childcareCustom: 0,
     consumables: 200,
     formula: 150,
-    gear: 5000,
+    gearItems: [
+      { id: "stroller", label: "Stroller", amount: 1000 },
+      { id: "crib", label: "Crib + mattress", amount: 700 },
+      { id: "carseat", label: "Car seat", amount: 500 },
+      { id: "bassinet", label: "Bassinet", amount: 300 },
+      { id: "feeding", label: "Feeding", amount: 400 },
+      { id: "diapering", label: "Diapering setup", amount: 300 },
+      { id: "clothes", label: "Clothes", amount: 400 },
+      { id: "carrier", label: "Carrier", amount: 200 },
+      { id: "monitor", label: "Monitor", amount: 250 },
+      { id: "bath", label: "Bath", amount: 150 },
+      { id: "buffer", label: "Buffer", amount: 800 },
+    ],
     medical: 10000,
     startMonth: "2027-07",
     ...over,
@@ -57,14 +68,22 @@ function fixture(over: Partial<Assumptions> = {}): Assumptions {
 const MOVERS = 2500;
 
 describe("compute", () => {
-  it("phase 1: cash = income − housing − lifestyle; total adds bonus/12", () => {
+  it("phase 1: cash = income − housing − lifestyle − travel/12; total adds bonus/12", () => {
     const a = fixture();
     const c = compute(a, MOVERS, OPTIONS);
     const income = a.hisPay + a.herPay; // 20180
     const housing = a.rent + a.housing; // 7420
     const lifestyle = a.dining + a.groceries + a.coffee + a.other; // 4575
-    expect(c.phase1.cash).toBe(income - housing - lifestyle); // 8185
+    const travelMo = a.travel / 12; // 333.33
+    expect(c.phase1.cash).toBeCloseTo(income - housing - lifestyle - travelMo, 6);
     expect(c.phase1.total).toBeCloseTo(c.phase1.cash + a.bonusNet / 12, 6);
+  });
+
+  it("annual travel reduces monthly investing by travel/12 in both phases", () => {
+    const base = compute(fixture({ travel: 0 }), MOVERS, OPTIONS);
+    const withTravel = compute(fixture({ travel: 12000 }), MOVERS, OPTIONS);
+    expect(base.phase1.cash - withTravel.phase1.cash).toBe(1000);
+    expect(base.phase2.cash - withTravel.phase2.cash).toBe(1000);
   });
 
   it("phase 2 subtracts the full monthly baby cost", () => {
@@ -94,13 +113,19 @@ describe("compute", () => {
     expect(base.phase2.cash - raised.phase2.cash).toBe(500);
   });
 
-  it("one-time reserve = broker(first rent) + movers + gear + medical", () => {
+  it("one-time reserve = broker(first rent) + movers + itemized gear + medical", () => {
     const a = fixture();
     const c = compute(a, MOVERS, OPTIONS);
     expect(c.broker).toBe(a.rent);
-    expect(c.gearEffective).toBe(a.gear);
+    expect(c.gearEffective).toBe(5000);
     expect(c.medical).toBe(a.medical);
-    expect(c.oneTimeTotal).toBe(a.rent + MOVERS + a.gear + a.medical);
+    expect(c.oneTimeTotal).toBe(a.rent + MOVERS + 5000 + a.medical);
+  });
+
+  it("gearTotal sums the itemized breakdown, falling back to legacy lump-sum gear", () => {
+    expect(gearTotal(fixture())).toBe(5000);
+    expect(gearTotal(fixture({ gearItems: [], gear: 5000 }))).toBe(5000);
+    expect(gearTotal(fixture({ gearItems: [] }))).toBe(0);
   });
 
   it("phase boundary labels come from the care-start month", () => {
@@ -121,7 +146,7 @@ describe("compute", () => {
 });
 
 describe("moneyFlow (Sankey conservation)", () => {
-  it("every paycheck dollar is accounted for: housing + lifestyle + childcare + investing = income", () => {
+  it("every paycheck dollar is accounted for: housing + lifestyle + travel + childcare + investing = income", () => {
     for (const phase of [1, 2] as const) {
       const a = fixture();
       const { nodes, links } = moneyFlow(a, OPTIONS, phase);
@@ -129,16 +154,21 @@ describe("moneyFlow (Sankey conservation)", () => {
       const payOut = links
         .filter((l) => l.source === "pay")
         .reduce((s, l) => s + l.value, 0);
-      expect(payOut).toBe(income);
+      expect(payOut).toBeCloseTo(income, 6);
 
       const byId = Object.fromEntries(nodes.map((n) => [n.id, n.value]));
       const housing = a.rent + a.housing;
       const lifestyle = a.dining + a.groceries + a.coffee + a.other;
+      const travel = a.travel / 12;
       const childcare =
         phase === 2 ? 3500 + a.consumables + a.formula : 0;
       expect(byId.housing).toBe(housing);
       expect(byId.lifestyle).toBe(lifestyle);
-      expect(byId.invest).toBe(income - housing - lifestyle - childcare + (a.includeBonus ? a.bonusNet / 12 : 0));
+      expect(byId.travel).toBeCloseTo(travel, 6);
+      expect(byId.invest).toBeCloseTo(
+        income - housing - lifestyle - travel - childcare + (a.includeBonus ? a.bonusNet / 12 : 0),
+        6,
+      );
       if (phase === 2) {
         expect(byId.childcare).toBe(childcare);
       } else {
@@ -191,27 +221,45 @@ describe("scenarioResults", () => {
 });
 
 describe("buildTimeline", () => {
-  it("emits months+1 points and switches phase at the baby offset", () => {
-    const a = fixture({ startMonth: "2027-07" });
-    const { points, babyOffset } = buildTimeline(a, MOVERS, OPTIONS, 60);
+  // travel 3996 => exactly 333/mo, so every assertion below is integer-exact.
+  it("emits months+1 points, deducts one-time costs, switches phase at the baby offset", () => {
+    const a = fixture({ travel: 3996, startMonth: "2027-07" });
+    const { points, babyOffset, birthOffset } = buildTimeline(a, MOVERS, OPTIONS, 60);
     expect(points).toHaveLength(61);
     expect(babyOffset).toBeGreaterThan(0);
+    // birth is ~2 months before care-start; July 2027 stays in Phase 2
+    expect(birthOffset).toBe(babyOffset - 2);
 
     const c = compute(a, MOVERS, OPTIONS);
     const bonusMo = a.bonusNet / 12;
-    // first month accumulates one month of phase-1 figures (timeline rounds)
-    expect(points[1].cash).toBe(c.phase1.cash);
+    const moveCosts = a.rent + MOVERS; // broker + movers at month 0
+    const babyCosts = 5000 + a.medical; // gear + medical at birth
+    expect(c.phase1.cash).toBe(7852);
+    expect(c.phase2.cash).toBe(4002);
+
+    // month 0 deducts the move costs immediately
+    expect(points[0].cash).toBe(-moveCosts);
+    // first month accumulates one month of phase-1 figures
+    expect(points[1].cash).toBe(c.phase1.cash - moveCosts);
     expect(points[1].bonus).toBe(Math.round(bonusMo));
-    // month at the offset is still phase 1, the next month is phase 2
-    expect(points[babyOffset].cash - points[babyOffset - 1].cash).toBe(
+    // months before the offset are phase 1, the offset month is phase 2
+    expect(points[babyOffset - 1].cash - points[babyOffset - 2].cash).toBe(
       c.phase1.cash,
     );
-    expect(points[babyOffset + 1].cash - points[babyOffset].cash).toBe(
+    expect(points[babyOffset].cash - points[babyOffset - 1].cash).toBe(
       c.phase2.cash,
     );
-    // cumulative: last point equals months of phase mix
+    // one-time baby costs land at the birth offset (a phase-1 month)
+    expect(points[birthOffset].cash - points[birthOffset - 1].cash).toBe(
+      c.phase1.cash - babyCosts,
+    );
+    // cumulative: last point equals months of phase mix minus one-time costs
+    // (months 1..babyOffset-1 are phase 1; the offset month itself is phase 2)
     const expectedCash =
-      babyOffset * c.phase1.cash + (60 - babyOffset) * c.phase2.cash;
+      (babyOffset - 1) * c.phase1.cash +
+      (60 - babyOffset + 1) * c.phase2.cash -
+      moveCosts -
+      babyCosts;
     expect(points[60].cash).toBe(expectedCash);
   });
 

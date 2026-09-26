@@ -241,8 +241,6 @@ const SANITIZERS: Record<string, (v: unknown) => unknown> = {
   coffee: Number,
   other: Number,
   travel: Number,
-  diningBaby: Number,
-  travelBaby: Number,
   childcare: (v) =>
     ["daycare", "nanny", "aunty", "none", "custom"].includes(String(v))
       ? String(v)
@@ -250,6 +248,22 @@ const SANITIZERS: Record<string, (v: unknown) => unknown> = {
   childcareCustom: Number,
   consumables: Number,
   formula: Number,
+  gearItems: (v) =>
+    Array.isArray(v)
+      ? v
+          .filter((it) => it && typeof it === "object")
+          .map((it) => {
+            const o = it as Record<string, unknown>;
+            return {
+              id: String(o.id ?? "").slice(0, 40),
+              label: String(o.label ?? "").slice(0, 60),
+              amount: Math.max(0, Number(o.amount) || 0),
+            };
+          })
+          .filter((it) => it.id.length > 0)
+      : [],
+  // Legacy lump-sum gear. Kept so pre-breakdown stored values survive;
+  // gearTotal() only uses it when gearItems is empty.
   gear: Number,
   medical: Number,
   startMonth: (v) => (/^\d{4}-\d{2}$/.test(String(v)) ? String(v) : "2027-07"),

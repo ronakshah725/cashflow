@@ -16,10 +16,10 @@ export type NumericKey = Extract<
   | "groceries"
   | "coffee"
   | "other"
+  | "travel"
   | "consumables"
   | "formula"
   | "childcareCustom"
-  | "gear"
   | "medical"
 >;
 
@@ -50,10 +50,10 @@ export const LEVERS: Record<NumericKey, LeverDef> = {
   groceries: { key: "groceries", label: "Groceries", min: 0, max: 1500, step: 25 },
   coffee: { key: "coffee", label: "Coffee + drinks", min: 0, max: 1000, step: 25 },
   other: { key: "other", label: "Other lifestyle", note: "Catch-all: editing the lifestyle total adjusts this", min: 0, max: 6000, step: 25 },
+  travel: { key: "travel", label: "Travel", note: "Annual; spread monthly into investing", min: 0, max: 20000, step: 250, annual: true },
   consumables: { key: "consumables", label: "Baby consumables", note: "Diapers, wipes, formula basics", min: 0, max: 1000, step: 25 },
   formula: { key: "formula", label: "Formula top-up", note: "0 if breastfeeding only", min: 0, max: 1000, step: 25, allowEmpty: true },
   childcareCustom: { key: "childcareCustom", label: "Custom childcare", min: 0, max: 12000, step: 50 },
-  gear: { key: "gear", label: "Gear reserve, one time", min: 0, max: 12000, step: 250, oneTime: true },
   medical: { key: "medical", label: "Medical OOP, one time", note: "Planning reserve, not a benefit determination", min: 0, max: 20000, step: 500, oneTime: true },
 };
 
@@ -76,5 +76,6 @@ export const LIFESTYLE_PARTS: NumericKey[] = ["dining", "groceries", "coffee", "
 export const FINE_TUNE_GROUPS: { heading: string; keys: NumericKey[] }[] = [
   { heading: "Income details", keys: ["hisPay", "herPay", "bonusNet", "grossBase"] },
   { heading: "Housing detail", keys: ["housing"] },
-  { heading: "Baby + one-time", keys: ["consumables", "formula", "gear", "medical"] },
+  { heading: "Travel", keys: ["travel"] },
+  { heading: "Baby + one-time", keys: ["consumables", "formula", "medical"] },
 ];

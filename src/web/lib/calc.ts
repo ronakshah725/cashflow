@@ -57,18 +57,23 @@ function phaseNumbers(
   return { cash: netCash, total: netTotal, netPct, grossPct, totalLabel };
 }
 
-export function compute(
-  a: Assumptions,
-  movers: number,
-  options: ChildcareOption[],
-  gearAssigned = 0,
-): CalcResult {
+/** Sum of the itemized baby-gear reserve. Falls back to the legacy lump-sum
+ *  `gear` when no items exist yet (data seeded before the breakdown). */
+export function gearTotal(a: Assumptions): number {
+  const items = Array.isArray(a.gearItems) ? a.gearItems : [];
+  if (items.length > 0)
+    return items.reduce((s, it) => s + (Number(it.amount) || 0), 0);
+  return Math.max(0, Number(a.gear) || 0);
+}
+
+export function compute(a: Assumptions, movers: number, options: ChildcareOption[]): CalcResult {
   const lifestyle = a.dining + a.groceries + a.coffee + a.other;
   const housing = a.rent + a.housing;
   const income = a.hisPay + a.herPay;
   const bonusMonthly = a.includeBonus ? a.bonusNet / 12 : 0;
+  const travelMonthly = a.travel / 12;
 
-  const phase1Cash = income - housing - lifestyle;
+  const phase1Cash = income - housing - lifestyle - travelMonthly;
   const phase1Total = phase1Cash + bonusMonthly;
 
   const childcare = childcareAmount(a, options);
@@ -86,7 +91,7 @@ export function compute(
     year: "numeric",
   });
 
-  const gearEffective = Math.max(a.gear, gearAssigned);
+  const gearEffective = gearTotal(a);
   const broker = a.rent;
   const oneTimeTotal = broker + movers + gearEffective + a.medical;
 
@@ -178,9 +183,10 @@ export function moneyFlow(
   const bonus = a.includeBonus ? a.bonusNet / 12 : 0;
   const housing = a.rent + a.housing;
   const lifestyle = a.dining + a.groceries + a.coffee + a.other;
+  const travel = a.travel / 12;
   const childcare =
     phase === 2 ? childcareAmount(a, options) + a.consumables + a.formula : 0;
-  const cashInvesting = income - housing - lifestyle - childcare;
+  const cashInvesting = income - housing - lifestyle - travel - childcare;
 
   const nodes: FlowNode[] = [
     { id: "pay", label: "Paychecks", value: income, color: "#58b368" },
@@ -188,6 +194,7 @@ export function moneyFlow(
   const links: FlowLink[] = [
     { source: "pay", target: "housing", value: housing, color: "#e07856" },
     { source: "pay", target: "lifestyle", value: lifestyle, color: "#e8935f" },
+    { source: "pay", target: "travel", value: travel, color: "#6aa9e0" },
   ];
   if (phase === 2) {
     nodes.push({ id: "bonus", label: "Bonus /12", value: bonus, color: "#d9a441" });
@@ -204,6 +211,7 @@ export function moneyFlow(
   nodes.push(
     { id: "housing", label: "Housing", value: housing, color: "#e07856" },
     { id: "lifestyle", label: "Lifestyle", value: lifestyle, color: "#e8935f" },
+    { id: "travel", label: "Travel", value: travel, color: "#6aa9e0" },
   );
   if (phase === 2)
     nodes.push({ id: "childcare", label: "Childcare", value: childcare, color: "#b57edc" });
@@ -263,15 +271,17 @@ function monthLabel(d: Date): string {
 
 /**
  * Cumulative investing month by month for the next `months` months.
- * Rent-only (Phase 1) until the baby-start month, Phase 2 after.
- * Bonus is its own stacked layer.
+ * Rent-only (Phase 1) until the baby-start month, Phase 2 from that month on.
+ * Bonus is its own stacked layer. One-time costs are deducted in the months
+ * they occur: broker + movers at the start of the window (the move),
+ * gear + medical at birth (~2 months before the care-start month).
  */
 export function buildTimeline(
   a: Assumptions,
   movers: number,
   options: ChildcareOption[],
   months = 60,
-): { points: TimelinePoint[]; babyOffset: number } {
+): { points: TimelinePoint[]; babyOffset: number; birthOffset: number } {
   const c = compute(a, movers, options);
   const now = new Date();
   const [sy, sm] = a.startMonth.split("-").map(Number);
@@ -281,12 +291,18 @@ export function buildTimeline(
   );
   const bonusMo = a.includeBonus ? a.bonusNet / 12 : 0;
 
+  const moveCosts = c.broker + movers;
+  const babyCosts = c.gearEffective + c.medical;
+  const birthOffset = Math.max(0, babyOffset - 2);
+
   let cash = 0;
   let bonus = 0;
   const points: TimelinePoint[] = [];
   for (let m = 0; m <= months; m++) {
+    if (m === 0) cash -= moveCosts + (birthOffset === 0 ? babyCosts : 0);
+    else if (m === birthOffset) cash -= babyCosts;
     if (m > 0) {
-      const phase = m <= babyOffset ? c.phase1 : c.phase2;
+      const phase = m < babyOffset ? c.phase1 : c.phase2;
       cash += phase.cash;
       bonus += bonusMo;
     }
@@ -298,7 +314,7 @@ export function buildTimeline(
       bonus: Math.round(bonus),
     });
   }
-  return { points, babyOffset };
+  return { points, babyOffset, birthOffset };
 }
 
 /** Axis formatter for large cumulative values. */

@@ -10,6 +10,7 @@ import {
   YAxis,
 } from "recharts";
 import { fmtAxis, money, type TimelinePoint } from "../lib/calc";
+import { InfoTip } from "./InfoTip";
 
 function TimelineTip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
@@ -28,14 +29,22 @@ function TimelineTip({ active, payload }: any) {
 interface Props {
   points: TimelinePoint[];
   babyOffset: number;
+  birthOffset: number;
 }
 
-export function Timeline({ points, babyOffset }: Props) {
+export function Timeline({ points, babyOffset, birthOffset }: Props) {
   const ticks = [0, 12, 24, 36, 48, 60].filter((t) => t <= points.length - 1);
+  const showBirth = birthOffset > 0 && birthOffset !== babyOffset;
   return (
     <section className="card" aria-label="Five year investing timeline">
       <div className="card-head">
-        <h2>5-year compounding runway</h2>
+        <span className="head-title">
+          <h2>5-year compounding runway</h2>
+          <InfoTip
+            label="About this chart"
+            text="Your invested balance growing month by month for five years. One-time costs (broker, movers, gear, medical) come out in the months they actually happen, so the line dips where they land."
+          />
+        </span>
       </div>
       <div className="legend">
         <span>
@@ -98,6 +107,19 @@ export function Timeline({ points, babyOffset }: Props) {
                 position: "insideTopRight",
               }}
             />
+            {showBirth && (
+              <ReferenceLine
+                x={birthOffset}
+                stroke="#8fa895"
+                strokeDasharray="2 3"
+                label={{
+                  value: "One-time",
+                  fill: "#8fa895",
+                  fontSize: 10,
+                  position: "insideTopLeft",
+                }}
+              />
+            )}
             <Area
               type="monotone"
               dataKey="cash"
@@ -121,7 +143,9 @@ export function Timeline({ points, babyOffset }: Props) {
       </div>
       <p className="card-note">
         Cumulative monthly investing. The shaded window is rent-only; baby costs
-        begin at the marker.
+        begin at the marker. One-time costs are deducted where they occur:
+        broker + movers at the start, gear + medical at the one-time marker
+        (around birth).
       </p>
     </section>
   );

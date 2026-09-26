@@ -57,6 +57,8 @@ export function App() {
       if (typeof saved.includeBonus === "boolean") merged.includeBonus = saved.includeBonus;
       if (typeof saved.childcare === "string" && saved.childcare) merged.childcare = saved.childcare;
       if (typeof saved.startMonth === "string") merged.startMonth = saved.startMonth;
+      if (Array.isArray(saved.gearItems)) merged.gearItems = saved.gearItems;
+      if (!Array.isArray(merged.gearItems)) merged.gearItems = [];
       setSeeded(d);
       setAssumptions(merged);
       setReady(true);
@@ -104,7 +106,7 @@ export function App() {
     () => scenarioResults(assumptions, movers, options, SCENARIO_ORDER),
     [assumptions, movers, options],
   );
-  const { points, babyOffset } = useMemo(
+  const { points, babyOffset, birthOffset } = useMemo(
     () => buildTimeline(assumptions, movers, options),
     [assumptions, movers, options],
   );
@@ -137,8 +139,8 @@ export function App() {
             onPhase={setPhase}
             includeBonus={assumptions.includeBonus}
           />
-          <ScenarioBars scenarios={scenarios} includeBonus={assumptions.includeBonus} />
-          <Timeline points={points} babyOffset={babyOffset} />
+          <ScenarioBars scenarios={scenarios} selectedId={assumptions.childcare} />
+          <Timeline points={points} babyOffset={babyOffset} birthOffset={birthOffset} />
           <HeroInputs a={assumptions} options={options} onPatch={patch} />
           <FineTune
             a={assumptions}
@@ -146,7 +148,6 @@ export function App() {
             oneTime={{
               broker: calc.broker,
               movers,
-              gear: calc.gearEffective,
               medical: calc.medical,
               total: calc.oneTimeTotal,
             }}
@@ -179,8 +180,9 @@ export function App() {
                   <p>
                     Cash-flow investing equals monthly take-home minus recurring
                     costs. Total investing adds the annual bonus net divided by
-                    12 when the bonus toggle is on. One-time reserves are shown
-                    separately and do not reduce either monthly figure.
+                    12 when the bonus toggle is on. One-time reserves (broker,
+                    movers, gear, medical) are deducted in the 5-year timeline
+                    in the months they occur, not from the monthly figures.
                   </p>
                 </div>
               </div>

@@ -6,6 +6,8 @@ import {
   type NumericKey,
 } from "../lib/levers";
 import type { Assumptions } from "../lib/types";
+import { GearBreakdown } from "./GearBreakdown";
+import { InfoTip } from "./InfoTip";
 import { MoneyControl } from "./MoneyControl";
 
 interface Props {
@@ -14,7 +16,6 @@ interface Props {
   oneTime: {
     broker: number;
     movers: number;
-    gear: number;
     medical: number;
     total: number;
   };
@@ -27,10 +28,14 @@ export function FineTune({ a, onPatch, oneTime }: Props) {
   return (
     <details className="card fine-tune">
       <summary>
-        <span>
+        <span className="head-title">
           <strong>Fine-tune</strong>
-          <span className="summary-note">Everything else</span>
+          <InfoTip
+            label="About fine-tune"
+            text="The details behind the five hero levers. One-time costs are money you set aside once, not every month."
+          />
         </span>
+        <span className="summary-note">Everything else</span>
       </summary>
       <div className="fine-tune-body">
         {FINE_TUNE_GROUPS.map((g) => (
@@ -71,9 +76,8 @@ export function FineTune({ a, onPatch, oneTime }: Props) {
               <span>Movers</span>
               <strong>{money(oneTime.movers)}</strong>
             </li>
-            <li>
-              <span>Baby gear</span>
-              <strong>{money(oneTime.gear)}</strong>
+            <li className="gear-row">
+              <GearBreakdown a={a} onPatch={onPatch} />
             </li>
             <li>
               <span>Medical OOP reserve</span>
