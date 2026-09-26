@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FineTune } from "./components/FineTune";
 import { HeroInputs } from "./components/HeroInputs";
+import { MoneyFlow } from "./components/MoneyFlow";
 import { ScenarioBars } from "./components/ScenarioBars";
 import { Timeline } from "./components/Timeline";
 import { TopBar } from "./components/TopBar";
 import { Verdict } from "./components/Verdict";
-import { Waterfall } from "./components/Waterfall";
 import { fetchAssumptions, fetchDefaults, saveAssumptions } from "./lib/api";
 import {
   buildTimeline,
   compute,
+  moneyFlow,
   scenarioResults,
-  waterfall,
 } from "./lib/calc";
 import {
   NUMERIC_KEYS,
@@ -96,8 +96,8 @@ export function App() {
     () => compute(assumptions, movers, options),
     [assumptions, movers, options],
   );
-  const steps = useMemo(
-    () => waterfall(assumptions, options, phase),
+  const flow = useMemo(
+    () => moneyFlow(assumptions, options, phase),
     [assumptions, options, phase],
   );
   const scenarios = useMemo(
@@ -130,8 +130,9 @@ export function App() {
             includeBonus={assumptions.includeBonus}
             phase={phase}
           />
-          <Waterfall
-            steps={steps}
+          <MoneyFlow
+            nodes={flow.nodes}
+            links={flow.links}
             phase={phase}
             onPhase={setPhase}
             includeBonus={assumptions.includeBonus}
