@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.wrangler/
+# Real financial default values live here. Never commit this file;
+# it is seeded into KV with `npm run seed`.
+config/assumptions.defaults.json
