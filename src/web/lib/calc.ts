@@ -150,39 +150,70 @@ export function verdictWord(total: number): string {
   return "In the red.";
 }
 
-export interface WaterfallStep {
-  name: string;
-  base: number;
-  delta: number;
-  kind: "income" | "cost" | "bonus" | "total";
+export interface FlowNode {
+  id: string;
+  label: string;
+  value: number;
+  color: string;
 }
 
-/** Waterfall steps: income minus cost buckets equals monthly investing. */
-export function waterfall(
+export interface FlowLink {
+  source: string;
+  target: string;
+  value: number;
+  color: string;
+}
+
+/**
+ * Sankey flow: monthly dollars in (paychecks + bonus) on the left,
+ * out (housing, lifestyle, childcare, investing) on the right.
+ * Every dollar is a stream with a real width, so nothing floats.
+ */
+export function moneyFlow(
   a: Assumptions,
   options: ChildcareOption[],
   phase: 1 | 2,
-): WaterfallStep[] {
+): { nodes: FlowNode[]; links: FlowLink[] } {
   const income = a.hisPay + a.herPay;
+  const bonus = a.includeBonus ? a.bonusNet / 12 : 0;
   const housing = a.rent + a.housing;
   const lifestyle = a.dining + a.groceries + a.coffee + a.other;
-  const baby =
+  const childcare =
     phase === 2 ? childcareAmount(a, options) + a.consumables + a.formula : 0;
-  const bonus = a.includeBonus ? a.bonusNet / 12 : 0;
+  const cashInvesting = income - housing - lifestyle - childcare;
 
-  const steps: WaterfallStep[] = [];
-  let run = 0;
-  const push = (name: string, delta: number, kind: WaterfallStep["kind"]) => {
-    steps.push({ name, base: kind === "total" ? 0 : run, delta, kind });
-    run += delta;
-  };
-  push("Income", income, "income");
-  push("Housing", -housing, "cost");
-  push("Lifestyle", -lifestyle, "cost");
-  if (phase === 2) push("Baby + care", -baby, "cost");
-  if (a.includeBonus) push("Bonus /12", bonus, "bonus");
-  push("Investing", run, "total");
-  return steps;
+  const nodes: FlowNode[] = [
+    { id: "pay", label: "Paychecks", value: income, color: "#58b368" },
+  ];
+  const links: FlowLink[] = [
+    { source: "pay", target: "housing", value: housing, color: "#e07856" },
+    { source: "pay", target: "lifestyle", value: lifestyle, color: "#e8935f" },
+  ];
+  if (phase === 2) {
+    nodes.push({ id: "bonus", label: "Bonus /12", value: bonus, color: "#d9a441" });
+    links.push({ source: "pay", target: "childcare", value: childcare, color: "#b57edc" });
+    links.push({ source: "pay", target: "invest", value: cashInvesting, color: "#58b368" });
+    links.push({ source: "bonus", target: "invest", value: bonus, color: "#d9a441" });
+  } else {
+    links.push({ source: "pay", target: "invest", value: cashInvesting, color: "#58b368" });
+    if (a.includeBonus) {
+      nodes.push({ id: "bonus", label: "Bonus /12", value: bonus, color: "#d9a441" });
+      links.push({ source: "bonus", target: "invest", value: bonus, color: "#d9a441" });
+    }
+  }
+  nodes.push(
+    { id: "housing", label: "Housing", value: housing, color: "#e07856" },
+    { id: "lifestyle", label: "Lifestyle", value: lifestyle, color: "#e8935f" },
+  );
+  if (phase === 2)
+    nodes.push({ id: "childcare", label: "Childcare", value: childcare, color: "#b57edc" });
+  nodes.push({
+    id: "invest",
+    label: "Investing",
+    value: cashInvesting + bonus,
+    color: "#3f9e58",
+  });
+  return { nodes, links };
 }
 
 export interface ScenarioResult {
