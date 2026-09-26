@@ -1,0 +1,6 @@
+#!/bin/sh
+# Pre-commit hook: unit tests must pass before any commit lands.
+# Installed from scripts/pre-commit (this repo); keep the two in sync.
+set -e
+cd "$(git rev-parse --show-toplevel)"
+npm run test --silent
