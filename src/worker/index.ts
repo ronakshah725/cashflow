@@ -199,8 +199,12 @@ app.get("/auth/callback", async (c) => {
     sub?: string;
   };
   const email = (profile.email || "").toLowerCase();
-  const allowed = (env.ALLOWED_EMAIL || "").toLowerCase();
-  if (!profile.email_verified || !profile.sub || email !== allowed) {
+  const allowedList = (env.ALLOWED_EMAIL || "")
+    .toLowerCase()
+    .split(",")
+    .map((e) => e.trim())
+    .filter(Boolean);
+  if (!profile.email_verified || !profile.sub || !allowedList.includes(email)) {
     return c.html("<h1>Not authorized</h1><p>This app is private.</p>", 403);
   }
 
