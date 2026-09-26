@@ -29,7 +29,7 @@ const STATUS_TEXT: Record<SaveState, string> = {
   error: "Save failed",
 };
 
-const SCENARIO_ORDER = ["daycare", "nanny", "aunty", "none"];
+const SCENARIO_ORDER = ["daycare", "nanny", "none"];
 
 function pickAssumptions(d: SeededDefaults): Assumptions {
   const { movers: _movers, childcareOptions: _opts, ...rest } = d;
