@@ -115,7 +115,7 @@ export function App() {
     () => scenarioResults(assumptions, movers, options, SCENARIO_ORDER),
     [assumptions, movers, options],
   );
-  const { points, babyOffset } = useMemo(
+  const { points, babyOffset, birthOffset } = useMemo(
     () => buildTimeline(assumptions, movers, options),
     [assumptions, movers, options],
   );
@@ -173,8 +173,8 @@ export function App() {
             onPhase={setPhase}
             includeBonus={assumptions.includeBonus}
           />
-          <ScenarioBars scenarios={scenarios} includeBonus={assumptions.includeBonus} />
-          <Timeline points={points} babyOffset={babyOffset} />
+          <ScenarioBars scenarios={scenarios} selectedId={assumptions.childcare} />
+          <Timeline points={points} babyOffset={babyOffset} birthOffset={birthOffset} />
           <HeroInputs a={assumptions} options={options} onPatch={patch} />
           <FineTune
             a={assumptions}
@@ -182,7 +182,6 @@ export function App() {
             oneTime={{
               broker: calc.broker,
               movers,
-              gear: calc.gearEffective,
               medical: calc.medical,
               total: calc.oneTimeTotal,
             }}
