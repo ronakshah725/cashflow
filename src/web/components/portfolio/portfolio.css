@@ -1,0 +1,332 @@
+/* Portfolio section. Reuses the dashboard palette and card language;
+ * portfolio-only classes are prefixed pf-. Mobile-first: cards, never
+ * tables, and primary actions at thumb reach. */
+
+.pf-tabstrip {
+  display: flex;
+  justify-content: flex-start;
+  padding: 2px 2px 0;
+}
+
+.pf-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 2px 0;
+}
+
+.pf-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.pf-subtitle {
+  margin: 2px 0 0;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.pf-hero {
+  margin: 2px 0 0;
+  font-size: 1.9rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.pf-hero-delta {
+  margin: 4px 0 0;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.pf-asof {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.pf-banner {
+  background: var(--surface-2);
+  border: 1px solid var(--gold);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 0;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.pf-banner-action {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pf-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.pf-item {
+  border-bottom: 1px solid var(--line);
+}
+
+.pf-item:last-child {
+  border-bottom: 0;
+}
+
+.pf-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 0;
+  background: transparent;
+  border: 0;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.pf-row:hover {
+  color: var(--ink);
+}
+
+.pf-row-static {
+  cursor: default;
+}
+
+.pf-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pf-row-main strong {
+  font-size: 0.95rem;
+}
+
+.pf-row-sub {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.pf-row-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex: 0 0 auto;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+/* flags: dot plus words, never color alone */
+.pf-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 0 10px;
+}
+
+.pf-flags-block {
+  margin-top: 10px;
+}
+
+.pf-flags-block .pf-flags {
+  padding-bottom: 0;
+}
+
+.pf-flag-wrap {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 100%;
+}
+
+.pf-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pf-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.pf-dot-mute {
+  background: var(--muted);
+}
+
+.pf-dot-warn {
+  background: var(--gold);
+}
+
+.pf-dot-loss {
+  background: var(--red);
+}
+
+.pf-dot-good {
+  background: var(--green);
+}
+
+.pf-flag-detail {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 0.76rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.pf-flag-more {
+  background: none;
+  border: 0;
+  padding: 4px 2px;
+  color: var(--muted);
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* actions: 44px minimum touch target, primary last in reading order */
+.pf-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.pf-actions-bottom {
+  padding-bottom: 8px;
+}
+
+.pf-btn,
+.pf-btn-primary {
+  min-height: 44px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pf-btn {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.pf-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.pf-btn-primary {
+  background: var(--green);
+  border: 1px solid var(--green);
+  color: #0b120e;
+}
+
+.pf-seg-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 2px 0 8px;
+}
+
+.pf-field-label {
+  display: block;
+  margin: 12px 0 6px;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.pf-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.pf-file-label {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.pf-file-input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.pf-list {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.pf-diff-group {
+  margin-top: 10px;
+}
+
+.pf-diff-group h3 {
+  margin: 0 0 2px;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 0.82rem;
+}
+
+.pf-skeleton {
+  height: 120px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  animation: pf-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pf-pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
