@@ -5,6 +5,7 @@ import { MoneyFlow } from "./components/MoneyFlow";
 import { ScenarioBars } from "./components/ScenarioBars";
 import { Timeline } from "./components/Timeline";
 import { TopBar } from "./components/TopBar";
+import { PortfolioApp } from "./components/portfolio/PortfolioApp";
 import { Verdict } from "./components/Verdict";
 import { fetchAssumptions, fetchDefaults, saveAssumptions } from "./lib/api";
 import {
@@ -24,7 +25,7 @@ type SaveState = "idle" | "saving" | "saved" | "error";
 
 const STATUS_TEXT: Record<SaveState, string> = {
   idle: "",
-  saving: "Saving\u2026",
+  saving: "Saving…",
   saved: "Saved",
   error: "Save failed",
 };
@@ -42,9 +43,17 @@ export function App() {
   const [ready, setReady] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [phase, setPhase] = useState<1 | 2>(2);
-  // Skip the save effect for the initial load and for explicit resets
-  // (reset saves immediately instead of debouncing).
-  const skipSave = useRef(true);
+  // Top-level section tab, using the app's existing .seg pattern (same as
+  // the Phase toggle in MoneyFlow). Cash flow is the existing dashboard;
+  // Portfolio is the new section.
+  const [tab, setTab] = useState<"cashflow" | "portfolio">("cashflow");
+  // Snapshot of the last saved levers. The save effect only persists when
+  // the levers differ from this snapshot, so the initial load never
+  // triggers a save (or a spurious failure when the API is unreachable,
+  // as under `npm run dev`). This also survives React StrictMode's
+  // double effect run in dev, which consumed the old skip-once flag and
+  // produced a "Save failed" status before any user edit.
+  const lastSaved = useRef<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -57,24 +66,24 @@ export function App() {
       if (typeof saved.includeBonus === "boolean") merged.includeBonus = saved.includeBonus;
       if (typeof saved.childcare === "string" && saved.childcare) merged.childcare = saved.childcare;
       if (typeof saved.startMonth === "string") merged.startMonth = saved.startMonth;
-      if (Array.isArray(saved.gearItems)) merged.gearItems = saved.gearItems;
-      if (!Array.isArray(merged.gearItems)) merged.gearItems = [];
+      lastSaved.current = JSON.stringify(merged);
       setSeeded(d);
       setAssumptions(merged);
       setReady(true);
     })();
   }, []);
 
-  // Debounced persist on lever changes.
+  // Debounced persist on lever changes, only when they differ from the
+  // last saved snapshot.
   useEffect(() => {
     if (!ready) return;
-    if (skipSave.current) {
-      skipSave.current = false;
-      return;
-    }
+    const snapshot = JSON.stringify(assumptions);
+    if (lastSaved.current === snapshot) return;
     setSaveState("saving");
     const t = window.setTimeout(async () => {
-      setSaveState((await saveAssumptions(assumptions)) ? "saved" : "error");
+      const ok = await saveAssumptions(assumptions);
+      if (ok) lastSaved.current = snapshot;
+      setSaveState(ok ? "saved" : "error");
     }, 600);
     return () => window.clearTimeout(t);
   }, [assumptions, ready]);
@@ -85,7 +94,7 @@ export function App() {
   const reset = async () => {
     if (!seeded) return;
     const base = pickAssumptions(seeded);
-    skipSave.current = true;
+    lastSaved.current = JSON.stringify(base);
     setAssumptions(base);
     setSaveState("saving");
     setSaveState((await saveAssumptions(base)) ? "saved" : "error");
@@ -106,7 +115,7 @@ export function App() {
     () => scenarioResults(assumptions, movers, options, SCENARIO_ORDER),
     [assumptions, movers, options],
   );
-  const { points, babyOffset, birthOffset } = useMemo(
+  const { points, babyOffset } = useMemo(
     () => buildTimeline(assumptions, movers, options),
     [assumptions, movers, options],
   );
@@ -115,8 +124,33 @@ export function App() {
     <main className="dash">
       <TopBar status={STATUS_TEXT[saveState]} onReset={reset} />
 
-      {!ready ? (
-        <p className="loading">Loading your assumptions\u2026</p>
+      <div className="pf-tabstrip">
+        <div className="seg" role="tablist" aria-label="Section">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === "cashflow"}
+            className={tab === "cashflow" ? "on" : ""}
+            onClick={() => setTab("cashflow")}
+          >
+            Cash flow
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === "portfolio"}
+            className={tab === "portfolio" ? "on" : ""}
+            onClick={() => setTab("portfolio")}
+          >
+            Portfolio
+          </button>
+        </div>
+      </div>
+
+      {tab === "portfolio" ? (
+        <PortfolioApp />
+      ) : !ready ? (
+        <p className="loading">Loading your assumptions…</p>
       ) : (
         <>
           {!seeded && (
@@ -139,8 +173,8 @@ export function App() {
             onPhase={setPhase}
             includeBonus={assumptions.includeBonus}
           />
-          <ScenarioBars scenarios={scenarios} selectedId={assumptions.childcare} />
-          <Timeline points={points} babyOffset={babyOffset} birthOffset={birthOffset} />
+          <ScenarioBars scenarios={scenarios} includeBonus={assumptions.includeBonus} />
+          <Timeline points={points} babyOffset={babyOffset} />
           <HeroInputs a={assumptions} options={options} onPatch={patch} />
           <FineTune
             a={assumptions}
@@ -148,6 +182,7 @@ export function App() {
             oneTime={{
               broker: calc.broker,
               movers,
+              gear: calc.gearEffective,
               medical: calc.medical,
               total: calc.oneTimeTotal,
             }}
@@ -180,9 +215,8 @@ export function App() {
                   <p>
                     Cash-flow investing equals monthly take-home minus recurring
                     costs. Total investing adds the annual bonus net divided by
-                    12 when the bonus toggle is on. One-time reserves (broker,
-                    movers, gear, medical) are deducted in the 5-year timeline
-                    in the months they occur, not from the monthly figures.
+                    12 when the bonus toggle is on. One-time reserves are shown
+                    separately and do not reduce either monthly figure.
                   </p>
                 </div>
               </div>
